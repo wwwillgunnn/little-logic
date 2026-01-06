@@ -1,8 +1,8 @@
 {
   "name": "little-logic",
-  "version": "0.5.1",
-  "description": "A monorepo template built with Bun, Hono, Vite, and React",
-  "author": "Steve Simkins",
+  "version": "1.0.0",
+  "description": "Explain anything like you're five using AI.",
+  "author": "William Gunn",
   "license": "MIT",
   "homepage": "https://github.com/stevedylandev/bhvr",
   "packageManager": "bun@1.2.4",

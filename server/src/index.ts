@@ -1,30 +1,37 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import OpenAI from "openai";
-import type { ApiResponse } from "shared/dist";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Point OpenAI SDK at Groq's OpenAI-compatible endpoint
+const apiKey = Bun.env.GROQ_API_KEY;
 
-export const app = new Hono()
-  .use(cors())
+const llmClient = apiKey
+  ? new OpenAI({ apiKey, baseURL: "https://api.groq.com/openai/v1" })
+  : null;
 
-  // .get("/", (c) => {
-  //   return c.text("Hello Hono!");
-  // })
+export const app = new Hono().use(cors()).post("/chat", async (c) => {
+  let body: { message?: string } | null = null;
 
-  .post("/chat", async (c) => {
-    const body = await c.req.json<{ message?: string }>();
-    const message = body?.message?.trim();
+  // Safely parse JSON
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json(
+      { message: 'Invalid JSON. Send: { "message": "hello" }' },
+      400
+    );
+  }
 
-    if (!message) {
-      return c.json({ message: "Please send a message." }, 400);
-    }
+  const message = (body?.message ?? "").trim();
+  if (!message) return c.json({ message: "Please send a message." }, 400);
+  if (message.length > 2000)
+    return c.json({ message: "Message too long." }, 400);
 
-    const resp = await openai.responses.create({
-      model: "gpt-5",
-      reasoning: { effort: "low" },
+  try {
+    if (!llmClient) return c.json({ message: "Missing GROQ_API_KEY" }, 500);
+
+    const resp = await llmClient.responses.create({
+      model: "llama-3.1-8b-instant",
       instructions:
         "You are LittleLogic. Explain the user's message like they are 5 years old. " +
         "Use simple words, short sentences, and one friendly analogy. " +
@@ -37,6 +44,15 @@ export const app = new Hono()
     return c.json({
       message: resp.output_text ?? "I could not think of a reply.",
     });
-  });
+  } catch (err) {
+    console.error("Groq(OpenAI-compat) error:", err);
+    return c.json(
+      { message: "Groq request failed. Check server logs for details." },
+      502
+    );
+  }
+});
 
 export default app;
+
+// next steps: https://bhvr.dev/deployment/server/cloudflare-workers

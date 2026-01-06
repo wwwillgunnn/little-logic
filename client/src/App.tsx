@@ -12,116 +12,69 @@ type ChatMessage = {
 };
 
 function App() {
-  // What the user is currently typing in the input box
   const [prompt, setPrompt] = useState("");
-
-  // Mode switch f = landing page, t = chat UI
-  const [chatCreated, setChatCreated] = useState(false);
-
-  // Used to disable input and show “Thinking...” while waiting for server
   const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]); // conversation history
+  const inChatMode = messages.length > 0 || isLoading;
 
-  // This is the conversation history. Rendering the chat is just mapping this array.
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-
-  // A ref to a dummy div at the bottom of chat, used for auto-scrolling
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-
-  // Whenever messages change (or loading state changes), scroll to bottom
+  const bottomRef = useRef<HTMLDivElement | null>(null); // dummy ref to scroll to
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" }); // auto scroll to bottom
+  }, [messages]);
 
-  // Generates a unique id for each message so React can track list items safely
-  function uid() {
-    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
-  }
-
-  // Core function: turns a user text into
-  // 1) a user message bubble
-  // 2) an API call
-  // 3) an assistant message bubble
-  async function sendRequest(messageText: string) {
+  async function sendRequest(messageText: string): Promise<boolean> {
     const trimmed = messageText.trim();
-    // Prevent empty messages and prevent spamming while one request is running
-    if (!trimmed || isLoading) return;
+    if (!trimmed || isLoading) return false; // ignore empty or concurrent requests
 
-    // This is what hides the landing page and shows the chat UI
-    // React will re-render and the conditional UI below will swap
-    setChatCreated(true);
-
-    // 1) Immediately add the user message into the chat history
     const userMsg: ChatMessage = { id: uid(), role: "user", message: trimmed };
-    setMessages((prev) => [...prev, userMsg]);
-
-    // 2) Enter loading mode: disable input + show “Thinking…”
+    setMessages((prev) => [...prev, userMsg]); // add user message to chat history
     setIsLoading(true);
 
     try {
-      // 3) Call your backend route
-      // If you later accept the prompt in query/body, you can pass it here.
-      const res = await client.chat.$post({ body: { message: trimmed } });
+      const res = await client.chat.$post({ json: { message: trimmed } }); // call backend
 
-      // If server returned an error, show a friendly assistant bubble
       if (!res.ok) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: uid(),
-            role: "assistant",
-            message:
-              "Sorry, I couldn’t fetch a response. Try again in a moment.",
-          },
-        ]);
-        return;
+        pushAssistant("Sorry, I couldn’t process that. Please try again.");
+        return false;
       }
 
-      // 4) Parse the JSON response
-      const json = await res.json();
-
-      // 5) Add assistant message to chat history (this creates the assistant bubble)
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: uid(),
-          role: "assistant",
-          message: json.message ?? "Got a response, but it was empty.",
-        },
-      ]);
+      const json: { message?: string } = await res.json();
+      pushAssistant(json.message ?? "Got a response, but it was empty."); // add assistant reply to chat history
+      return true;
     } catch (error) {
       console.log(error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: uid(),
-          role: "assistant",
-          message: "Something went wrong while contacting the server.",
-        },
-      ]);
+      pushAssistant("Something went wrong while contacting the server.");
+      return false;
     } finally {
       setIsLoading(false);
     }
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    // Send whatever is currently typed in the input
-    sendRequest(prompt);
-
-    // Clear input right away for a “chat app” feel
-    setPrompt("");
+    const didSend = await sendRequest(prompt);
+    if (didSend) setPrompt("");
   }
 
-  // Example buttons reuse the same sendRequest logic
-  function handleExample(example: string) {
+  function pushAssistant(text: string) {
+    setMessages((prev) => [
+      ...prev,
+      { id: uid(), role: "assistant", message: text },
+    ]);
+  }
+
+  function handleExamplePrompt(example: string) {
     sendRequest(example);
+  }
+
+  function uid() {
+    return crypto.randomUUID(); // Generate a unique id for each message
   }
 
   return (
     <main>
       {/* Landing page UI: shown only before the first request */}
-      {!chatCreated && (
+      {!inChatMode && (
         <>
           <div>
             <img
@@ -148,7 +101,9 @@ function App() {
               <button
                 className="promptCard"
                 type="button"
-                onClick={() => handleExample("explain quantum physics to me")}
+                onClick={() =>
+                  handleExamplePrompt("explain quantum physics to me")
+                }
               >
                 explain quantum
                 <br />
@@ -159,7 +114,9 @@ function App() {
                 className="promptCard"
                 type="button"
                 onClick={() =>
-                  handleExample("what is the purpose of personal finances")
+                  handleExamplePrompt(
+                    "what is the purpose of personal finances"
+                  )
                 }
               >
                 what is the purpose of
@@ -171,7 +128,9 @@ function App() {
                 className="promptCard"
                 type="button"
                 onClick={() =>
-                  handleExample("what would it take for me to go to space")
+                  handleExamplePrompt(
+                    "what would it take for me to go to space"
+                  )
                 }
               >
                 what would it take for
@@ -184,7 +143,7 @@ function App() {
       )}
 
       {/* Chat UI: shown after the first request (chatCreated becomes true) */}
-      {chatCreated && (
+      {inChatMode && (
         <section className="chatShell" aria-label="Chat">
           <div className="chatBody">
             {/* Render the entire conversation from the messages array */}
@@ -201,8 +160,6 @@ function App() {
 
             {/* While waiting for server, show a temporary assistant bubble */}
             {isLoading && <div className="bubble botBubble">Thinking…</div>}
-
-            {/* This is the “scroll target” at the bottom */}
             <div ref={bottomRef} />
           </div>
         </section>
@@ -212,9 +169,7 @@ function App() {
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder={
-            chatCreated ? "Message LittleLogic…" : "Ask me anything!"
-          }
+          placeholder={inChatMode ? "Message LittleLogic…" : "Ask me anything!"}
           aria-label="Ask me anything"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
