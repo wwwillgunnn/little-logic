@@ -78,7 +78,7 @@ function App() {
         <>
           <div>
             <img
-              src="/littleJIT.png"
+              src="/LittleJIT.png"
               className="logo"
               alt="LittleLogic logo"
             />
