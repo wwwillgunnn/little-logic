@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { hcWithType } from "server/dist/client";
 import "./App.css";
 
-const SERVER_URL =
-  import.meta.env.VITE_SERVER_URL ?? "https://server.pandapower819.workers.dev";
+const SERVER_URL = "https://server.pandapower819.workers.dev";
 const client = hcWithType(SERVER_URL);
 
 type ChatMessage = {
@@ -78,11 +77,7 @@ function App() {
       {!inChatMode && (
         <>
           <div>
-            <img
-              src="/LittleJIT.png"
-              className="logo"
-              alt="LittleLogic logo"
-            />
+            <img src="/LittleJIT.png" className="logo" alt="LittleLogic logo" />
           </div>
 
           <header>
