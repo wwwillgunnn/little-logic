@@ -2,14 +2,14 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import OpenAI from "openai";
 
-// Point OpenAI SDK at Groq's OpenAI-compatible endpoint
-const apiKey = Bun.env.GROQ_API_KEY;
-
-const llmClient = apiKey
-  ? new OpenAI({ apiKey, baseURL: "https://api.groq.com/openai/v1" })
-  : null;
-
 export const app = new Hono().use(cors()).post("/chat", async (c) => {
+  // Point OpenAI SDK at Groq's OpenAI-compatible endpoint
+  const apiKey = process.env.GROQ_API_KEY;
+
+  const llmClient = apiKey
+    ? new OpenAI({ apiKey, baseURL: "https://api.groq.com/openai/v1" })
+    : null;
+
   let body: { message?: string } | null = null;
 
   // Safely parse JSON
@@ -18,7 +18,7 @@ export const app = new Hono().use(cors()).post("/chat", async (c) => {
   } catch {
     return c.json(
       { message: 'Invalid JSON. Send: { "message": "hello" }' },
-      400
+      400,
     );
   }
 
@@ -48,11 +48,9 @@ export const app = new Hono().use(cors()).post("/chat", async (c) => {
     console.error("Groq(OpenAI-compat) error:", err);
     return c.json(
       { message: "Groq request failed. Check server logs for details." },
-      502
+      502,
     );
   }
 });
 
 export default app;
-
-// next steps: https://bhvr.dev/deployment/server/cloudflare-workers

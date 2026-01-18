@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { hcWithType } from "server/dist/client";
 import "./App.css";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+const SERVER_URL =
+  import.meta.env.VITE_SERVER_URL ?? "https://server.pandapower819.workers.dev";
 const client = hcWithType(SERVER_URL);
 
 type ChatMessage = {
@@ -115,7 +116,7 @@ function App() {
                 type="button"
                 onClick={() =>
                   handleExamplePrompt(
-                    "what is the purpose of personal finances"
+                    "what is the purpose of personal finances",
                   )
                 }
               >
@@ -129,7 +130,7 @@ function App() {
                 type="button"
                 onClick={() =>
                   handleExamplePrompt(
-                    "what would it take for me to go to space"
+                    "what would it take for me to go to space",
                   )
                 }
               >
