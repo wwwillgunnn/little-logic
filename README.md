@@ -1,8 +1,10 @@
 # LittleLogic
 
+LittleLogic is a simple chat style web app that will explain anything to you like a 5 year old.
+
 Access [LittleLogic](https://little-logic.pages.dev)
 
-LittleLogic is a simple chat style web app that will explain anything to you like a 5 year old.
+## 📸 Preview
 
 <img width="1088" height="692" alt="image" src="https://github.com/user-attachments/assets/d2b70648-c16d-4f32-b9d0-a16d91ce25f6" />
 
