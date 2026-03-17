@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 type Env = {
-  ELI5_GROQ_API_KEY: string;
+  GROQ_API_KEY: string;
 };
 
 export const app = new Hono<{ Bindings: Env }>()
@@ -10,7 +10,7 @@ export const app = new Hono<{ Bindings: Env }>()
   .get("/", (c) => c.text("Server is running"))
   .get("/chat", (c) => c.text("Chat GET works"))
   .post("/chat", async (c) => {
-    const apiKey = c.env.ELI5_GROQ_API_KEY;
+    const apiKey = c.env.GROQ_API_KEY;
 
     let body: { message?: string } | null = null;
 
