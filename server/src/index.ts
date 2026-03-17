@@ -1,56 +1,90 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import OpenAI from "openai";
 
-export const app = new Hono().use(cors()).post("/chat", async (c) => {
-  // Point OpenAI SDK at Groq's OpenAI-compatible endpoint
-  const apiKey = process.env.GROQ_API_KEY;
+type Env = {
+  GROQ_API_KEY: string;
+};
 
-  const llmClient = apiKey
-    ? new OpenAI({ apiKey, baseURL: "https://api.groq.com/openai/v1" })
-    : null;
+export const app = new Hono<{ Bindings: Env }>()
+  .use(cors())
+  .post("/chat", async (c) => {
+    const apiKey = c.env.GROQ_API_KEY;
 
-  let body: { message?: string } | null = null;
+    let body: { message?: string } | null = null;
 
-  // Safely parse JSON
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json(
-      { message: 'Invalid JSON. Send: { "message": "hello" }' },
-      400,
-    );
-  }
+    // Safely parse JSON
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json(
+        { message: 'Invalid JSON. Send: { "message": "hello" }' },
+        400,
+      );
+    }
 
-  const message = (body?.message ?? "").trim();
-  if (!message) return c.json({ message: "Please send a message." }, 400);
-  if (message.length > 2000)
-    return c.json({ message: "Message too long." }, 400);
+    const message = (body?.message ?? "").trim();
 
-  try {
-    if (!llmClient) return c.json({ message: "Missing GROQ_API_KEY" }, 500);
+    if (!message)
+      return c.json({ message: "Please send a message." }, 400);
 
-    const resp = await llmClient.responses.create({
-      model: "llama-3.1-8b-instant",
-      instructions:
-        "You are LittleLogic. Explain the user's message like they are 5 years old. " +
-        "Use simple words, short sentences, and one friendly analogy. " +
-        "Keep it under 8 sentences. " +
-        "If the user asks for code, give a tiny example. " +
-        "If the question is missing key info, ask exactly one short follow-up question.",
-      input: message,
-    });
+    if (message.length > 2000)
+      return c.json({ message: "Message too long." }, 400);
 
-    return c.json({
-      message: resp.output_text ?? "I could not think of a reply.",
-    });
-  } catch (err) {
-    console.error("Groq(OpenAI-compat) error:", err);
-    return c.json(
-      { message: "Groq request failed. Check server logs for details." },
-      502,
-    );
-  }
-});
+    try {
+      if (!apiKey) {
+        return c.json({ message: "Missing GROQ_API_KEY" }, 500);
+      }
+
+      const response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.1-8b-instant",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are LittleLogic. Explain like the user is 5. Use simple words, short sentences, and one friendly analogy. Keep it under 8 sentences.",
+              },
+              {
+                role: "user",
+                content: message,
+              },
+            ],
+          }),
+        },
+      );
+
+      const data = (await response.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+
+      // Debug if something goes wrong
+      if (!response.ok) {
+        console.error("Groq API error:", data);
+        return c.json(
+          { message: "Groq API error", error: data },
+          502,
+        );
+      }
+
+      return c.json({
+        message:
+          data?.choices?.[0]?.message?.content ??
+          "I could not think of a reply.",
+      });
+    } catch (err) {
+      console.error("Server error:", err);
+      return c.json(
+        { message: "Server error", error: String(err) },
+        500,
+      );
+    }
+  });
 
 export default app;

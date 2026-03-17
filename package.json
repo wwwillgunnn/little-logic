@@ -44,6 +44,7 @@
     "@hono/zod-validator": "^0.7.6",
     "hono": "^4.11.3",
     "openai": "^6.15.0",
+    "wrangler": "^4.74.0",
     "zod": "^4.3.5"
   }
 }
