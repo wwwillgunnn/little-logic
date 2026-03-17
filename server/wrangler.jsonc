@@ -6,10 +6,8 @@
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],
-  "vars": {
-    "GROQ_API_KEY": "",
-    "ELI5_GROQ_API_KEY": "",
-  },
+  // "vars": {
+  // },
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",
