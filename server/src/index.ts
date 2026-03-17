@@ -2,13 +2,15 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 type Env = {
-  GROQ_API_KEY: string;
+  ELI5_GROQ_API_KEY: string;
 };
 
 export const app = new Hono<{ Bindings: Env }>()
   .use(cors())
+  .get("/", (c) => c.text("Server is running"))
+  .get("/chat", (c) => c.text("Chat GET works"))
   .post("/chat", async (c) => {
-    const apiKey = c.env.GROQ_API_KEY;
+    const apiKey = c.env.ELI5_GROQ_API_KEY;
 
     let body: { message?: string } | null = null;
 
@@ -24,8 +26,7 @@ export const app = new Hono<{ Bindings: Env }>()
 
     const message = (body?.message ?? "").trim();
 
-    if (!message)
-      return c.json({ message: "Please send a message." }, 400);
+    if (!message) return c.json({ message: "Please send a message." }, 400);
 
     if (message.length > 2000)
       return c.json({ message: "Message too long." }, 400);
@@ -67,10 +68,7 @@ export const app = new Hono<{ Bindings: Env }>()
       // Debug if something goes wrong
       if (!response.ok) {
         console.error("Groq API error:", data);
-        return c.json(
-          { message: "Groq API error", error: data },
-          502,
-        );
+        return c.json({ message: "Groq API error", error: data }, 502);
       }
 
       return c.json({
@@ -80,10 +78,7 @@ export const app = new Hono<{ Bindings: Env }>()
       });
     } catch (err) {
       console.error("Server error:", err);
-      return c.json(
-        { message: "Server error", error: String(err) },
-        500,
-      );
+      return c.json({ message: "Server error", error: String(err) }, 500);
     }
   });
 

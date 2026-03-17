@@ -8,6 +8,7 @@
   // ],
   "vars": {
     "GROQ_API_KEY": "",
+    "ELI5_GROQ_API_KEY": "",
   },
   // "kv_namespaces": [
   //   {

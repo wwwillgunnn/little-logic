@@ -34,9 +34,17 @@ function App() {
       const res = await client.chat.$post({ json: { message: trimmed } }); // call backend
 
       if (!res.ok) {
-        pushAssistant("Sorry, I couldn’t process that. Please try again.");
+        const err = await res.json();
+        console.log("SERVER ERROR:", err);
+        pushAssistant(err.message || "Server error");
         return false;
       }
+
+      // For users
+      //       if (!res.ok) {
+      //   pushAssistant("Sorry, I couldn’t process that. Please try again.");
+      //   return false;
+      // }
 
       const json: { message?: string } = await res.json();
       pushAssistant(json.message ?? "Got a response, but it was empty."); // add assistant reply to chat history
